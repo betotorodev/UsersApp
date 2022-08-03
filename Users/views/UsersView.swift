@@ -29,7 +29,7 @@ struct UsersView: View {
     NavigationView {
       List(ListOfUsers, id: \.id) { user in
         NavigationLink {
-          Text("holi")
+          UserDetailView(user: user)
         } label: {
           HStack {
             Circle()
@@ -38,6 +38,7 @@ struct UsersView: View {
             Text("\(user.name)")
           }
         }
+        .disabled(user.isActive == false)
       }
       .task {
         await loadData()
