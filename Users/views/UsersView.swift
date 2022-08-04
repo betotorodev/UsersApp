@@ -9,6 +9,8 @@ import SwiftUI
 
 struct UsersView: View {
   @State private var ListOfUsers = [User]()
+  @Environment(\.managedObjectContext) var moc
+  @FetchRequest(sortDescriptors: []) var users: FetchedResults<CachedUser>
   
   func loadData() async {
     guard ListOfUsers.isEmpty else { return }
@@ -19,7 +21,34 @@ struct UsersView: View {
       
       let decoder = JSONDecoder()
       decoder.dateDecodingStrategy = .iso8601
-      ListOfUsers = try decoder.decode([User].self, from: data)
+      
+      try await MainActor.run {
+        ListOfUsers = try decoder.decode([User].self, from: data)
+        
+        // save in Core Data
+        for user in ListOfUsers {
+          let cachedUser = CachedUser(context: moc)
+          cachedUser.id = user.id
+          cachedUser.isActive = user.isActive
+          cachedUser.name = user.name
+          cachedUser.age = Int16(user.age)
+          cachedUser.company = user.company
+          cachedUser.email = user.email
+          cachedUser.address = user.address
+          cachedUser.about = user.about
+          cachedUser.registered = user.registered
+          cachedUser.tags = user.tags.joined(separator: ",")
+          for friend in user.friends {
+            let friendData = CachedFriend(context: moc)
+            friendData.origin?.name = cachedUser.name
+            friendData.id = friend.id
+            friendData.name = friend.name
+          }
+        }
+        try? moc.save
+        
+        // end MainActor
+      }
     } catch {
       print("Invalid data")
     }
@@ -44,6 +73,11 @@ struct UsersView: View {
         await loadData()
       }
       .navigationTitle("Users")
+      .toolbar {
+        Button("show the cached in console") {
+          print(users)
+        }
+      }
     }
   }
 }
