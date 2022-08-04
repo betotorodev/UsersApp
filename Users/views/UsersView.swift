@@ -32,7 +32,7 @@ struct UsersView: View {
           UserDetailView(user: user)
         } label: {
           HStack {
-            Circle() 
+            Circle()
               .foregroundColor(user.isActive ? Color.green : Color.red)
               .frame(width: 8, height: 8)
             Text("\(user.name)")

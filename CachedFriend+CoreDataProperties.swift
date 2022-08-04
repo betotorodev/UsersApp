@@ -20,6 +20,13 @@ extension CachedFriend {
   @NSManaged public var id: UUID?
   @NSManaged public var origin: CachedUser?
   
+  public var wrappedId: UUID {
+    id ?? UUID()
+  }
+  public var wrappedName: String {
+    name ?? "none"
+  }
+  
 }
 
 extension CachedFriend : Identifiable {
