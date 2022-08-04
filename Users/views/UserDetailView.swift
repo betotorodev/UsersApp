@@ -9,29 +9,29 @@ import SwiftUI
 
 struct UserDetailView: View {
   
-  let user: User
+  let user: CachedUser
   
   var body: some View {
     List {
       Section {
         VStack(alignment: .leading) {
-          Text(user.name)
+          Text(user.wrappedName)
             .font(.title3)
-          Text("age: \(user.age)")
+          Text("age: \(user.wrappedAge)")
             .font(.caption)
         }
       }
       Section("Contac") {
         VStack(alignment: .leading, spacing: 10) {
-          Text("email: \(user.email)")
+          Text("email: \(user.wrappedEmail)")
             .font(.subheadline)
-          Text("address: \(user.address)")
+          Text("address: \(user.wrappedAddress)")
             .font(.subheadline)
         }
       }
       Section("Friends") {
-        ForEach(user.friends, id: \.id) { friend in
-          Text(friend.name)
+        ForEach(user.friendsArray, id: \.id) { friend in
+          Text(friend.wrappedName)
             .font(.subheadline)
         }
       }

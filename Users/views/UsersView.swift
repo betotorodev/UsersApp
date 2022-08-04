@@ -8,9 +8,32 @@
 import SwiftUI
 
 struct UsersView: View {
-  @State private var ListOfUsers = [User]()
+  @FetchRequest(sortDescriptors: [SortDescriptor(\.name)]) var ListOfUsers: FetchedResults<CachedUser>
   @Environment(\.managedObjectContext) var moc
-  @FetchRequest(sortDescriptors: []) var users: FetchedResults<CachedUser>
+  
+  func updateCache(with downloadedUsers: [User]) {
+    for user in downloadedUsers {
+      let cachedUser = CachedUser(context: moc)
+      cachedUser.id = user.id
+      cachedUser.isActive = user.isActive
+      cachedUser.name = user.name
+      cachedUser.age = Int16(user.age)
+      cachedUser.company = user.company
+      cachedUser.email = user.email
+      cachedUser.address = user.address
+      cachedUser.about = user.about
+      cachedUser.registered = user.registered
+      cachedUser.tags = user.tags.joined(separator: ",")
+      for friend in user.friends {
+        let friendData = CachedFriend(context: moc)
+        friendData.id = friend.id
+        friendData.name = friend.name
+        cachedUser.addToFriends(friendData)
+      }
+    }
+    try? moc.save
+    //end fuction
+  }
   
   func loadData() async {
     guard ListOfUsers.isEmpty else { return }
@@ -21,34 +44,13 @@ struct UsersView: View {
       
       let decoder = JSONDecoder()
       decoder.dateDecodingStrategy = .iso8601
+      let users = try decoder.decode([User].self, from: data)
       
-      try await MainActor.run {
-        ListOfUsers = try decoder.decode([User].self, from: data)
-        
-        // save in Core Data
-        for user in ListOfUsers {
-          let cachedUser = CachedUser(context: moc)
-          cachedUser.id = user.id
-          cachedUser.isActive = user.isActive
-          cachedUser.name = user.name
-          cachedUser.age = Int16(user.age)
-          cachedUser.company = user.company
-          cachedUser.email = user.email
-          cachedUser.address = user.address
-          cachedUser.about = user.about
-          cachedUser.registered = user.registered
-          cachedUser.tags = user.tags.joined(separator: ",")
-          for friend in user.friends {
-            let friendData = CachedFriend(context: moc)
-            friendData.origin?.name = cachedUser.name
-            friendData.id = friend.id
-            friendData.name = friend.name
-          }
-        }
-        try? moc.save
-        
-        // end MainActor
+      // save in Core Data
+      await MainActor.run {
+          updateCache(with: users)
       }
+      // end do block
     } catch {
       print("Invalid data")
     }
@@ -56,15 +58,15 @@ struct UsersView: View {
   
   var body: some View {
     NavigationView {
-      List(ListOfUsers, id: \.id) { user in
+      List(ListOfUsers) { user in
         NavigationLink {
-          UserDetailView(user: user)
+//          UserDetailView(user: user)
         } label: {
           HStack {
             Circle()
               .foregroundColor(user.isActive ? Color.green : Color.red)
               .frame(width: 8, height: 8)
-            Text("\(user.name)")
+            Text("\(user.wrappedName)")
           }
         }
         .disabled(user.isActive == false)
@@ -73,12 +75,9 @@ struct UsersView: View {
         await loadData()
       }
       .navigationTitle("Users")
-      .toolbar {
-        Button("show the cached in console") {
-          print(users)
-        }
-      }
     }
+    
+    
   }
 }
 
